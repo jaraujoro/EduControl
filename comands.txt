@@ -1,6 +1,35 @@
 python -m venv venv
 venv\Scripts\activate
 
-
 git config --global user.name "jhon0003.alexander@gmail.com"
 git config --global user.email "jhon0003.alexander@gmail.com"
+
+mkdir apps\usuarios
+mkdir apps\alumnos
+mkdir apps\profesores
+mkdir apps\cursos
+mkdir apps\matriculas
+mkdir apps\asistencia
+mkdir apps\notas
+mkdir apps\horarios
+
+python manage.py startapp usuarios apps/usuarios
+python manage.py startapp alumnos apps/alumnos
+python manage.py startapp profesores apps/profesores
+python manage.py startapp cursos apps/cursos
+python manage.py startapp matriculas apps/matriculas
+python manage.py startapp asistencia apps/asistencia
+python manage.py startapp notas apps/notas
+python manage.py startapp horarios apps/horarios
+
+django-admin startapp EduControl
+django-admin starproject config .
+
+python manage.py makemigrations
+python manage.py migrate
+
+python manage.py createsuperuser
+
+
+front 
+npm create vite@latest .
