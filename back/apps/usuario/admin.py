@@ -1,3 +1,7 @@
 from django.contrib import admin
+from .models import UsuarioRol
+from .models import UsuarioMenu
 
-# Register your models here.
+
+admin.site.register(UsuarioRol)
+admin.site.register(UsuarioMenu)

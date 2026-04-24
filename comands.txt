@@ -21,6 +21,8 @@ python manage.py startapp matriculas apps/matriculas
 python manage.py startapp asistencia apps/asistencia
 python manage.py startapp notas apps/notas
 python manage.py startapp horarios apps/horarios
+python manage.py startapp menu apps/menu
+
 
 django-admin startapp EduControl
 django-admin starproject config .

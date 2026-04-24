@@ -1,55 +1,55 @@
-// src/router/index.js
 import { createRouter, createWebHistory } from "vue-router";
-import Login from "../views/Login.vue";
 
 const routes = [
   {
-    path: "/",
-    redirect: "/login"
-  },
-  {
     path: "/login",
     name: "Login",
-    component: Login
+    component: () => import("../modules/auth/view/login.vue"),
   },
   {
-    path: "/admin",
-    component: () => import("../layouts/sidebar.vue"),
+    path: "/",
+    component: () => import("../core/layout/AdminLayout.vue"),
     meta: { requiresAuth: true },
     children: [
-      { 
-        path: "dashboard", 
-        name: "Dashboard",
-        component: () => import("../views/Dashboard.vue") 
+      {
+        path: "",
+        redirect: "/dashboard",
       },
-      { 
-        path: "", 
-        redirect: "/admin/dashboard" 
-      }
-    ]
-  }
+      {
+        path: "dashboard",
+        name: "Dashboard",
+        component: () => import("../modules/dashboard/view/dashboard.vue"),
+      },
+      {
+        path: "permisos/permisos-rol",
+        name: "Permisos de rol",
+        component: () => import("../modules/permisos/view/permisos-rol.vue"),
+      },
+    ],
+  },
+
+  {
+    path: "/:pathMatch(.*)*",
+    redirect: "/login",
+  },
 ];
 
 const router = createRouter({
   history: createWebHistory(),
-  routes
-})
+  routes,
+});
 
 router.beforeEach((to, from, next) => {
-  
-  const user = localStorage.getItem('user');
-  const isAuthenticated = user !== null;
-  
-  if (to.meta.requiresAuth && !isAuthenticated) {
-    next('/login');
-  } 
-
-  else if (to.path === '/login' && isAuthenticated) {
-    next('/admin/dashboard');
-  } 
-  else {
-    next();
+  const auth = JSON.parse(localStorage.getItem("auth") || "{}");
+  const token = auth.token;
+  const isLogin = to.path === "/login";
+  if (!token && !isLogin) {
+    return next("/login");
   }
+  if (token && isLogin) {
+    return next("/dashboard");
+  }
+  next();
 });
 
 export default router;

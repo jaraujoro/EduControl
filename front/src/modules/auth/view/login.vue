@@ -101,7 +101,7 @@
 
 <script setup lang="ts">
 import { ref } from "vue";
-import { login_usuario } from "../api/usuario-service";
+import { login_usuario } from "../api/login.ts";
 import { useRouter } from "vue-router";
 
 const router = useRouter();
@@ -118,8 +118,9 @@ const showPassword = ref(false);
 const rememberMe = ref(false);
 
 const handleLogin = async () => {
-  // Validaciones
+
   let hasError = false;
+
   if (!form.value.username) {
     errors.value.username = "El usuario es requerido";
     hasError = true;
@@ -144,41 +145,28 @@ const handleLogin = async () => {
 
   try {
     const response = await login_usuario(form.value);
-    console.log(response.data);
-    console.log(response.data.user)
-
-
-    if (response.data && response.data.success) {
-
-      const data = response.data.user;
-
-      localStorage.setItem("user", JSON.stringify({
-        id: data.id,
-        username: data.username,
-        email: data.email,
-        is_superuser: data.is_superuser,
-        is_staff: data.is_staff
-      }));
-
-      if (rememberMe.value) {
-        localStorage.setItem("saved_user", form.value.username);
-      } else {
-        localStorage.removeItem("saved_user");
-      }
-
-      router.push('/admin/dashboard');
-
+    const data = response.data;
+    localStorage.setItem("auth", JSON.stringify({
+      user: data.user,
+      token: data.access,
+      refresh: data.refresh
+    }));
+    if (rememberMe.value) {
+      localStorage.setItem("saved_user", form.value.username);
     } else {
-      errorMessage.value = "Error al obtener datos del usuario";
+      localStorage.removeItem("saved_user");
     }
-
+    router.replace('/dashboard');
   } catch (e: any) {
-    errorMessage.value = e.response?.data?.message || "Error al iniciar sesión";
+    if (e.response) {
+      errorMessage.value = e.response.data.message;
+    } else {
+      errorMessage.value = "Error de conexión con el servidor";
+    }
     setTimeout(() => errorMessage.value = "", 3000);
   } finally {
     loading.value = false;
   }
-
 };
 
 // Cargar usuario guardado
