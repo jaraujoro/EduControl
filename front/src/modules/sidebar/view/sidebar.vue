@@ -119,7 +119,7 @@
 import * as Icons from "@heroicons/vue/24/outline";
 import { ref, onMounted, watch } from "vue";
 import { useRouter, useRoute } from "vue-router";
-import { list_menu } from "../api/side-bar.ts";
+import { list_menu } from "../api/sidebar.ts";
 
 /* PROPS */
 defineProps({

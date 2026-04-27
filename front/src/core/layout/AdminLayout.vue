@@ -80,7 +80,7 @@
 </template>
 
 <script setup>
-import Sidebar from "../../modules/menu/view/side-bar.vue";
+import Sidebar from "../../modules/sidebar/view/sidebar.vue";
 import { ref, computed, onMounted, onUnmounted, watch } from "vue";
 import { useRouter, useRoute } from "vue-router";
 

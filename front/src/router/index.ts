@@ -4,7 +4,7 @@ const routes = [
   {
     path: "/login",
     name: "Login",
-    component: () => import("../modules/auth/view/login.vue"),
+    component: () => import("../modules/login/view/login.vue"),
   },
   {
     path: "/",
@@ -24,6 +24,11 @@ const routes = [
         path: "permisos/permisos-rol",
         name: "Permisos de rol",
         component: () => import("../modules/permisos/view/permisos-rol.vue"),
+      },
+      {
+        path: "permisos/modulos",
+        name: "Módulos del sistema",
+        component: () => import("../modules/modulos/view/modulo.vue"),
       },
     ],
   },
