@@ -39,7 +39,7 @@
                                     Estado
                                 </th>
                                 <th
-                                    class="px-4 md:px-6 py-4 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                                    class="px-4 md:px-6 py-4 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider">
                                     Acciones
                                 </th>
                             </tr>
@@ -68,8 +68,8 @@
                                         {{ role.rol_activo ? "Activo" : "Inactivo" }}
                                     </span>
                                 </td>
-                                <td class="px-4 md:px-6 py-4 text-right">
-                                    <div class="flex justify-end gap-2">
+                                <td class="px-4 md:px-6 py-4 text-center">
+                                    <div class="flex justify-center gap-2">
                                         <button @click="openModal(role)"
                                             class="text-xs font-medium text-gray-600 hover:text-blue-600 px-3 py-1.5 rounded-md hover:bg-blue-50 transition-all">
                                             Editar
@@ -165,7 +165,7 @@
                                 </div>
                             </div>
 
-                            <!-- Tab: Permisos y accesos mejorada - SIN ICONOS Y SIN AVANCE -->
+                            <!-- Tab: Permisos y accesos mejorada -->
                             <div v-show="activeTab === 'permissions'" class="space-y-4">
                                 <!-- Barra de herramientas -->
                                 <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
@@ -206,11 +206,15 @@
                                             </button>
                                             <div v-else class="w-4"></div>
 
-                                            <!-- Checkbox padre -->
+                                            <!-- Checkbox padre con soporte para estado indeterminado -->
                                             <label class="flex items-center gap-3 cursor-pointer flex-1">
-                                                <input type="checkbox" v-model="menu.checked"
+                                                <input 
+                                                    type="checkbox" 
+                                                    :checked="menu.checked"
+                                                    :indeterminate="menu.indeterminate"
                                                     @change="toggleChildren(menu)"
-                                                    class="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-2 focus:ring-blue-500" />
+                                                    class="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-2 focus:ring-blue-500" 
+                                                />
                                                 <span class="text-sm font-medium text-gray-800">
                                                     {{ menu.titulo }}
                                                 </span>
@@ -221,8 +225,8 @@
                                         <transition name="fade">
                                             <div v-if="menu.children?.length && menu.expanded"
                                                 class="pl-9 sm:pl-11 pr-3 sm:pr-4 pb-2 relative">
-                                                <!-- Línea vertical guía (opcional, si quieres mantenerla, sino quita este div) -->
-                                                <div class="absolute left-5 top-0 bottom-0 w-px bg-gray-300"></div>
+                                                <!-- Línea vertical guía -->
+                                                <div class="absolute left-5 top-0 w-px h-[65px] bg-gray-300"></div>
 
                                                 <div v-for="child in menu.children" :key="child.id"
                                                     class="relative flex items-center gap-3 py-1.5">
@@ -230,9 +234,12 @@
                                                     <div class="absolute left-1 top-1/2 w-4 h-px bg-gray-300"></div>
 
                                                     <label class="flex items-center gap-3 cursor-pointer pl-6">
-                                                        <input type="checkbox" v-model="child.checked"
+                                                        <input 
+                                                            type="checkbox" 
+                                                            v-model="child.checked"
                                                             @change="checkParent(menu)"
-                                                            class="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-2 focus:ring-blue-500" />
+                                                            class="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-2 focus:ring-blue-500" 
+                                                        />
                                                         <span class="text-sm text-gray-600">
                                                             {{ child.titulo }}
                                                         </span>
@@ -315,6 +322,7 @@ const collapseAll = () => {
 const selectAll = () => {
     menus.value.forEach((menu) => {
         menu.checked = true;
+        menu.indeterminate = false;
         if (menu.children) {
             menu.children.forEach((c: any) => (c.checked = true));
         }
@@ -324,6 +332,7 @@ const selectAll = () => {
 const clearAll = () => {
     menus.value.forEach((menu) => {
         menu.checked = false;
+        menu.indeterminate = false;
         if (menu.children) {
             menu.children.forEach((c: any) => (c.checked = false));
         }
@@ -341,16 +350,28 @@ const toggleChildren = (menu: any) => {
         menu.children.forEach((c: any) => {
             c.checked = menu.checked;
         });
+        // Cuando se marca/desmarca el padre, no debe quedar indeterminado
+        menu.indeterminate = false;
     }
 };
 
 // Verificar padre cuando se selecciona hijo
 const checkParent = (menu: any) => {
     if (!menu.children) return;
+    
     const allChecked = menu.children.every((c: any) => c.checked);
     const someChecked = menu.children.some((c: any) => c.checked);
-    menu.checked = allChecked;
-    menu.indeterminate = !allChecked && someChecked;
+    
+    if (allChecked) {
+        menu.checked = true;
+        menu.indeterminate = false;
+    } else if (someChecked) {
+        menu.checked = false;
+        menu.indeterminate = true;
+    } else {
+        menu.checked = false;
+        menu.indeterminate = false;
+    }
 };
 
 // API Calls
@@ -388,6 +409,13 @@ const openModal = async (role: any) => {
                 checked: c.checked || false,
             })),
         }));
+        
+        // Después de cargar los menús, verificar el estado de cada padre
+        menus.value.forEach((menu: any) => {
+            if (menu.children && menu.children.length > 0) {
+                checkParent(menu);
+            }
+        });
     } catch (error) {
         console.error("Error al cargar menús:", error);
         sweetalert2.fire("Error", "No se pudieron cargar los permisos", "error");
