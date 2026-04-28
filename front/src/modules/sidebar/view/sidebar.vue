@@ -18,26 +18,26 @@
   >
     <!-- Menú -->
     <nav class="mt-4 px-2">
-      <div v-for="item in menuItems" :key="item.path">
+      <div v-for="item in menuItems" :key="item.ruta">
 
         <!-- ITEM -->
         <div
-          @click="item.children && item.children.length ? toggleMenu(item.path) : navigate(item.path)"
+          @click="item.children && item.children.length ? toggleMenu(item.ruta) : navigate(item.ruta)"
           :class="[
             'flex items-center px-3 py-3 mb-1 rounded-lg cursor-pointer transition-all',
-            isActive(item.path)
+            isActive(item.ruta)
               ? 'bg-white/20 text-white shadow-md'
               : 'text-white/70 hover:bg-white/10 hover:text-white',
           ]"
         >
           <component
-            v-if="Icons[item.icon]"
-            :is="Icons[item.icon]"
+            v-if="Icons[item.icono]"
+            :is="Icons[item.icono]"
             class="w-5 h-5"
           />
 
           <span v-if="!isCollapsed" class="ml-3 text-xs font-medium flex-1">
-            {{ item.title }}
+            {{ item.titulo }}
           </span>
 
           <!-- Flecha -->
@@ -45,7 +45,7 @@
             v-if="item.children && item.children.length && !isCollapsed"
             :class="[
               'w-4 h-4 transition-transform',
-              openMenus[item.path] ? 'rotate-90' : '',
+              openMenus[item.ruta] ? 'rotate-90' : '',
             ]"
             fill="none"
             stroke="currentColor"
@@ -58,26 +58,26 @@
 
         <!-- SUBMENU -->
         <div
-          v-if="item.children && openMenus[item.path] && !isCollapsed"
+          v-if="item.children && openMenus[item.ruta] && !isCollapsed"
           class="ml-6"
         >
           <div
             v-for="child in item.children"
-            :key="child.path"
-            @click="navigate(child.path)"
+            :key="child.ruta"
+            @click="navigate(child.ruta)"
             :class="[
               'flex items-center px-3 py-2 mb-1 rounded-lg cursor-pointer text-xs transition-all',
-              isActive(child.path)
+              isActive(child.ruta)
                 ? 'bg-white/20 text-white'
                 : 'text-white/70 hover:bg-white/10 hover:text-white',
             ]"
           >
             <component
-              v-if="Icons[child.icon]"
-              :is="Icons[child.icon]"
+              v-if="Icons[child.icono]"
+              :is="Icons[child.icono]"
               class="w-4 h-4"
             />
-            <span class="ml-3">{{ child.title }}</span>
+            <span class="ml-3">{{ child.titulo }}</span>
           </div>
         </div>
 
@@ -163,10 +163,10 @@ const openActiveMenu = () => {
   menuItems.value.forEach((item) => {
     if (item.children) {
       const found = item.children.find((child) =>
-        currentPath.startsWith("/" + child.path)
+        currentPath.startsWith("/" + child.ruta)
       );
 
-      if (found) openMenus.value[item.path] = true;
+      if (found) openMenus.value[item.ruta] = true;
     }
   });
 };

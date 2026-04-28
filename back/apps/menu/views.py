@@ -1,7 +1,8 @@
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
-
+from django.db.models import Prefetch
+from .serializers import MenuSerializer
 from apps.menu.models import Menu
 from apps.rol.models import RolMenu
 from apps.usuario.models import UsuarioRol, UsuarioMenu
@@ -29,35 +30,42 @@ def list_menu_x_usuario(request):
 
     # 4. UNIR AMBOS (sin duplicados)
     menu_ids = set(role_menu_ids) | set(user_menu_ids)
-
-    # 5. MENÚS PADRE
+    
+    # 5. QUERY OPTIMIZADA
     menus = Menu.objects.filter(
         id__in=menu_ids,
         menu_padre__isnull=True,
         menu_activo=True
+    ).prefetch_related(
+        Prefetch(
+            'menus_hijos',
+            queryset=Menu.objects.filter(
+                id__in=menu_ids,
+                menu_activo=True
+            ).order_by('menu_orden'),
+            to_attr='children_list'
+        )
     ).order_by('menu_orden')
 
-    data = []
+    # 6. SERIALIZER
+    serializer = MenuSerializer(menus, many=True)
 
-    for menu in menus:
+    return Response(serializer.data)
 
-        children = Menu.objects.filter(
-            id__in=menu_ids,
-            menu_padre=menu,
-            menu_activo=True
-        ).order_by('menu_orden')
+@api_view(['GET'])
+def list_menu(request):
 
-        data.append({
-            "title": menu.menu_titulo,
-            "path": menu.menu_ruta,
-            "icon": menu.menu_icono,
-            "children": [
-                {
-                    "title": c.menu_titulo,
-                    "path": c.menu_ruta,
-                    "icon": c.menu_icono
-                } for c in children
-            ]
-        })
+    menus = Menu.objects.filter(
+        menu_padre__isnull=True,
+        menu_activo=True
+    ).prefetch_related(
+        Prefetch(
+            'menus_hijos',
+            queryset=Menu.objects.filter(menu_activo=True).order_by('menu_orden'),
+            to_attr='children_list'
+        )
+    ).order_by('menu_orden')
 
-    return Response(data)
+    serializer = MenuSerializer(menus, many=True)
+
+    return Response(serializer.data)

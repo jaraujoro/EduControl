@@ -212,7 +212,7 @@
                                                     type="checkbox" 
                                                     :checked="menu.checked"
                                                     :indeterminate="menu.indeterminate"
-                                                    @change="toggleChildren(menu)"
+                                                    @change="toggleChildren(menu , $event)"
                                                     class="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-2 focus:ring-blue-500" 
                                                 />
                                                 <span class="text-sm font-medium text-gray-800">
@@ -291,14 +291,18 @@ const tabs = [
     { key: "permissions", label: "Permisos y accesos" },
 ];
 
-// Obtener módulos seleccionados
 const getSelectedMenus = () => {
     const selected: number[] = [];
+    
     menus.value.forEach((menu: any) => {
-        if (menu.checked) selected.push(menu.id);
+        if (menu.checked || menu.indeterminate) {
+            selected.push(menu.id);
+        }
         if (menu.children) {
             menu.children.forEach((c: any) => {
-                if (c.checked) selected.push(c.id);
+                if (c.checked) {
+                    selected.push(c.id);
+                }
             });
         }
     });
@@ -345,16 +349,16 @@ const toggleExpand = (menu: any) => {
 };
 
 // Toggle hijos cuando se selecciona padre
-const toggleChildren = (menu: any) => {
+const toggleChildren = (menu: any, event: any) => {
     if (menu.children) {
+        const nuevoEstado = event.target.checked;  // Obtener el nuevo estado
         menu.children.forEach((c: any) => {
-            c.checked = menu.checked;
+            c.checked = nuevoEstado;  // Usar el nuevo estado
         });
-        // Cuando se marca/desmarca el padre, no debe quedar indeterminado
         menu.indeterminate = false;
+        menu.checked = nuevoEstado;  // Asegurar que el padre tiene el estado correcto
     }
 };
-
 // Verificar padre cuando se selecciona hijo
 const checkParent = (menu: any) => {
     if (!menu.children) return;

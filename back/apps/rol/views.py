@@ -1,63 +1,74 @@
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.decorators import api_view, permission_classes
+from django.db import transaction
+from django.db.models import Prefetch
+
 from apps.rol.models import Rol, RolMenu
 from apps.menu.models import Menu
-from django.db import transaction
+from apps.rol.serializers import RolSerializer, RolSaveSerializer, MenuRolSerializer
 
+
+# 🔹 LISTAR ROLES
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def list_rol(request):
     roles = Rol.objects.order_by('id')
-    return Response(roles.values())
+    serializer = RolSerializer(roles, many=True)
+    return Response(serializer.data)
 
+
+# 🔹 CREAR / ACTUALIZAR ROL
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def save_rol(request):
-    data = request.data
 
+    data = request.data
     rol_data = data.get('rol')
     menus = data.get('menus', [])
+
+    serializer = RolSaveSerializer(data=rol_data)
+
+    if not serializer.is_valid():
+        return Response(serializer.errors, status=400)
+
+    validated_data = serializer.validated_data
 
     try:
         with transaction.atomic():
 
-            # 🔹 1. CREAR o ACTUALIZAR ROL
-            rol_id = rol_data.get('id')
+            rol_id = validated_data.get('id')
 
+            # 🔹 CREAR o ACTUALIZAR
             if rol_id:
                 rol = Rol.objects.get(id=rol_id)
-                rol.rol_nombre = rol_data.get('rol_nombre')
-                rol.rol_descripcion = rol_data.get('rol_descripcion')
-                rol.rol_activo = rol_data.get('rol_activo')
+                rol.rol_nombre = validated_data.get('rol_nombre')
+                rol.rol_descripcion = validated_data.get('rol_descripcion')
+                rol.rol_activo = validated_data.get('rol_activo')
                 rol.save()
             else:
-                rol = Rol.objects.create(
-                    rol_nombre=rol_data.get('rol_nombre'),
-                    rol_descripcion=rol_data.get('rol_descripcion'),
-                    rol_activo=rol_data.get('rol_activo')
-                )
+                rol = Rol.objects.create(**validated_data)
 
-            # 🔹 2. OBTENER MENUS ACTUALES EN BD
+            # 🔹 MENUS ACTUALES
             current_menus = set(
                 RolMenu.objects.filter(rol=rol)
                 .values_list('menu_id', flat=True)
             )
 
-            # 🔹 3. MENUS QUE VIENEN DEL FRONT
+            # 🔹 MENUS NUEVOS
             new_menus = set(menus)
 
-            # 🔹 4. CALCULAR
+            # 🔹 DIFERENCIAS
             to_add = new_menus - current_menus
             to_remove = current_menus - new_menus
 
-            # 🔹 5. INSERTAR LOS NUEVOS (checked)
+            # 🔹 INSERTAR NUEVOS
             RolMenu.objects.bulk_create([
                 RolMenu(rol=rol, menu_id=menu_id)
                 for menu_id in to_add
             ])
 
-            # 🔹 6. ELIMINAR LOS DESMARCADOS
+            # 🔹 ELIMINAR LOS QUE YA NO ESTÁN
             RolMenu.objects.filter(
                 rol=rol,
                 menu_id__in=to_remove
@@ -68,48 +79,40 @@ def save_rol(request):
             "rol_id": rol.id
         })
 
-    except Exception as e:
-        return Response({
-            "error": str(e)
-        }, status=400)
+    except Rol.DoesNotExist:
+        return Response({"error": "Rol no encontrado"}, status=404)
 
+    except Exception as e:
+        return Response({"error": str(e)}, status=400)
+
+
+# 🔹 LISTAR MENÚ POR ROL (CON CHECKED)
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def list_rol_x_menu(request, rol_id):
 
+    # 🔹 MENÚS ASIGNADOS AL ROL
     role_menu_ids = set(
         RolMenu.objects.filter(rol_id=rol_id)
         .values_list('menu_id', flat=True)
     )
 
+    # 🔹 MENÚ PRINCIPAL + HIJOS
     menus = Menu.objects.filter(
         menu_padre__isnull=True,
         menu_activo=True
+    ).prefetch_related(
+        Prefetch(
+            'menus_hijos',
+            queryset=Menu.objects.filter(menu_activo=True).order_by('menu_orden'),
+            to_attr='children_list'
+        )
     ).order_by('menu_orden')
 
-    data = []
+    serializer = MenuRolSerializer(
+        menus,
+        many=True,
+        context={'role_menu_ids': role_menu_ids}
+    )
 
-    for menu in menus:
-        children = Menu.objects.filter(
-            menu_padre=menu,
-            menu_activo=True
-        ).order_by('menu_orden')
-
-        data.append({
-            "id": menu.id,
-            "titulo": menu.menu_titulo,
-            "ruta": menu.menu_ruta,
-            "icono": menu.menu_icono,
-            "checked": menu.id in role_menu_ids,
-            "children": [
-                {
-                    "id": c.id,
-                    "titulo": c.menu_titulo,
-                    "ruta": c.menu_ruta,
-                    "icono": c.menu_icono,
-                    "checked": c.id in role_menu_ids
-                } for c in children
-            ]
-        })
-
-    return Response(data)
+    return Response(serializer.data)
